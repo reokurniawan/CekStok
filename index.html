@@ -19,6 +19,11 @@ input[type=search]{flex:1 1 220px}
 button,.btn{padding:10px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}
 button.ghost{background:#fff;color:var(--accent)}
 .opts{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px}
+#types{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+button.chip{padding:6px 12px;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:999px;font-size:13px;font-weight:500}
+button.chip small{color:var(--muted);margin-left:2px}
+button.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+button.chip.on small{color:#d1fae5}
 #msg{font-size:13px;margin:6px 0 10px;min-height:18px}
 .ok{color:#047857}.err{color:#b91c1c}
 .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
@@ -45,6 +50,7 @@ mark{background:#fde68a;border-radius:2px}
     <button class="ghost" onclick="resetData()">Reset</button>
     <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
   </div>
+  <div id="types"></div>
   <div class="opts">
     <label><input type="checkbox" id="onlyPrice"> Hanya yang ada harga</label>
     <span id="count"></span>
@@ -135,15 +141,31 @@ const $=id=>document.getElementById(id);
 const rp=n=>n?"Rp"+n.toLocaleString("id-ID"):"-";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+const sel=new Set();
+function typeOf(n){n=n.toUpperCase();const m=n.match(/^IPHONE\s+(XR|XS|X|SE|\d+)/);if(m)return "iPhone "+m[1];if(/^APPLE WATCH/.test(n))return "Apple Watch";const w=n.split(/\s+/)[0];return w.charAt(0)+w.slice(1).toLowerCase()}
+function ord(t){const m=t.match(/^iPhone (\d+)/);if(m)return +m[1];if(t.startsWith("iPhone"))return 10;return 100}
+function chips(){
+  const c={};data.forEach(r=>{const t=typeOf(r[0]);c[t]=(c[t]||0)+1});
+  for(const t of [...sel])if(!c[t])sel.delete(t);
+  const ts=Object.keys(c).sort((a,b)=>ord(a)-ord(b)||a.localeCompare(b));
+  $("types").innerHTML='<button class="chip'+(sel.size?'':' on')+'" data-t="">Semua</button>'+ts.map(t=>`<button class="chip${sel.has(t)?' on':''}" data-t="${esc(t)}">${esc(t)} <small>${c[t]}</small></button>`).join("");
+}
+$("types").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const t=b.dataset.t;
+  if(!t)sel.clear();else if(sel.has(t))sel.delete(t);else sel.add(t);
+  chips();render();
+});
 function brands(){
   const cur=$("brand").value;
   const b=[...new Set(data.map(r=>r[1]).filter(Boolean))].sort();
   $("brand").innerHTML='<option value="">Semua merek</option>'+b.map(x=>`<option>${esc(x)}</option>`).join("");
   $("brand").value=b.includes(cur)?cur:"";
+  chips();
 }
 function render(){
   const q=$("q").value.trim().toLowerCase(), br=$("brand").value, op=$("onlyPrice").checked;
-  let rows=data.filter(r=>(!br||r[1]===br)&&(!op||r[3])&&(!q||q.split(/\s+/).every(w=>(r[0]+" "+r[1]+" "+r[2]).toLowerCase().includes(w))));
+  let rows=data.filter(r=>(!br||r[1]===br)&&(!op||r[3])&&(!sel.size||sel.has(typeOf(r[0])))&&(!q||q.split(/\s+/).every(w=>(r[0]+" "+r[1]+" "+r[2]).toLowerCase().includes(w))));
   if(sortK!==null)rows=[...rows].sort((a,b)=>{const x=a[sortK],y=b[sortK];const c=typeof x==="number"?x-y:String(x).localeCompare(String(y),"id",{numeric:true});return sortAsc?c:-c});
   const words=q?q.split(/\s+/).filter(Boolean).map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")):[];
   const hl=s=>{s=esc(s);return words.length?s.replace(new RegExp("("+words.join("|")+")","gi"),"<mark>$1</mark>"):s};
