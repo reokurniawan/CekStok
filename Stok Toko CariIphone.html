@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stok Toko CariIphone</title>
+<style>
+:root{--bg:#fff;--text:#1a1f2b;--muted:#6b7280;--line:#e5e7eb;--accent:#0f766e;--soft:#f3f4f6;--hl:#ecfdf5;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+input[type=search],select{padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff;color:var(--text)}
+input[type=search]{flex:1 1 220px}
+button,.btn{padding:10px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}
+button.ghost{background:#fff;color:var(--accent)}
+.opts{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px}
+#msg{font-size:13px;margin:6px 0 10px;min-height:18px}
+.ok{color:#047857}.err{color:#b91c1c}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n{white-space:normal;min-width:260px}
+th{background:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);cursor:pointer;position:sticky;top:0}
+tr:hover td{background:var(--hl)}
+td.p,th.p{text-align:right}
+.empty{color:var(--muted)}
+.imei{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+mark{background:#fde68a;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Stok Toko CariIphone</h1>
+  <div class="sub" id="info"></div>
+
+  <div class="bar">
+    <input type="search" id="q" placeholder="Cari nama barang, IMEI, atau merek...">
+    <select id="brand"><option value="">Semua merek</option></select>
+    <button onclick="document.getElementById('file').click()">Upload Excel</button>
+    <button class="ghost" onclick="resetData()">Reset</button>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="onlyPrice"> Hanya yang ada harga</label>
+    <span id="count"></span>
+  </div>
+  <div id="msg"></div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr>
+        <th data-k="0">Nama Barang</th><th data-k="1">Merek</th><th data-k="2">IMEI</th><th class="p" data-k="3">Harga Jual</th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const RAW=`APPLE WATCH ULTRA 2 49MM TITANIUM GREEN/GRAY TL S/M|358161180695593|7500000
+IPAD AIR GEN 5 64GB INTER SPACE GRAY|C4DHGTJ7JQ|5700000
+IPHONE XR 128GB INTER WHITE BH.88|356431100723631|3000000
+IPHONE 11 128GB INTER GREEN BH.93 (4737)|356334101294737|3800000
+IPHONE 11 128GB BEACUKAI GREEN BH.100 (-BATRE)|356559100060750|4500000
+IPHONE 11 128GB BEACUKAI BLACK BH.89|355230550453611|4750000
+IPHONE 11 64GB IBOX WHITE BH.77|352695692042352|0
+IPHONE 11 64GB IBOX WHITE BH.96 (1793)|357933831541793|4600000
+IPHONE 11 64GB IBOX BLACK BH.83|356786283236390|4600000
+IPHONE 11 64GB IBOX BLACK BH.91|354022145103376|0
+IPHONE 11 128GB IBOX WHITE BH.81|357778617846258|5400000
+IPHONE 11 128GB IBOX PURPLE BH.87|355125535603803|5300000
+IPHONE 12 128GB INTER WHITE BH.100 (-PBP, LCD & BACKDOOR)|353719570611291|0
+IPHONE 12 128GB BEACUKAI WHITE BH.100 (1518)|357711646041518|5900000
+IPHONE 12 128GB BEACUKAI WHITE BH.95 (9925)|358284937829925|5900000
+IPHONE 12 PRO 128GB BEACUKAI GOLD BH.100 (-PBP & FACE ID)|357850274028775|5200000
+IPHONE 12 PROMAX 128GB INTER GRAPHITE BH.85 (-PLP)|352850793386378|5500000
+IPHONE 12 PRO MAX 128GB BEACUKAI PASIFIC BLUE BH.75|356713116945484|0
+IPHONE 12 PRO MAX 128GB BEACUKAI PASIFIC BLUE BH.78 (-LCD)|353074312693268|0
+IPHONE 13 128GB INTER MIDNIGHT BH.78|355678751467980|5400000
+IPHONE 13 128GB INTER STARLIGHT BH.88|357247397386307|5400000
+IPHONE 13 128GB INTER STARLIGHT BH.81 (9656)|353341830399656|5400000
+IPHONE 13 128GB INTER STARLIGHT BH.77 (6117)|357084340666117|0
+IPHONE 13 128GB INTER STARLIGHT BH.80 (MIRZA)|357106636063566|5400000
+IPHONE 13 128GB INTER BLUE BH.94|354551506794589|5400000
+IPHONE 13 256GB BEACUKAI STARLIGHT BH.100|350408420871197|7800000
+IPHONE 13 256GB BEACUKAI STARLIGHT BH.100 (9804)|357084343409804|7800000
+IPHONE 13 256GB BEACUKAI PINK BH.100 (7829)|351488259467829|7800000
+IPHONE 14 128GB IBOX STARLIGHT BH.100 (ASLI)|359922417246362|8500000
+IPHONE 14 128GB IBOX BLUE BH.82 (3008)|358397766403008|8500000
+IPHONE 14 PRO 128GB BEACUKAI DEEP PURPLE BH.94|357154675270254|10000000
+IPHONE 14 PRO 128GB BEACUKAI GOLD BH.100 (2408)|354001276012408|10800000
+IPHONE 14 PRO 128GB BEACUKAI DEEP PURPLE BH.100 (-PBP)|357289400917199|10000000
+IPHONE 14 PRO 512GB IBOX SPACE BLACK BH.93|353730790005800|12800000
+IPHONE 15 128GB INTER YELLOW BH.86|358985167264563|8200000
+IPHONE 15 128GB INTER GREEN BH.92 (6288)|358985164516288|8200000
+IPHONE 15 128GB NEW IBOX PINK SA/A (1973)|350258126261973|13300000
+IPHONE 15 128GB NEW IBOX BLUE SA/A (5076)|350795424725076|13300000
+IPHONE 15 128GB IBOX BLUE BH.78|352336429369962|0
+IPHONE 15 128GB IBOX BLACK BH.89 (2639)|354941529872639|9800000
+IPHONE 15 128GB IBOX PINK BH.89|356660803049015|10000000
+IPHONE 15 256GB IBOX BLACK BH.87 (-FACE ID & LAYAR )|353354149454872|8500000
+IPHONE 15 PLUS 256GB BEACUKAI BLACK BH.84|359793756130263|0
+IPHONE 15 PLUS 128GB IBOX PINK BH.86 (5957)|352072540765957|11200000
+IPHONE 15 PRO 128GB IBOX BLACK TITANIUM BH.93|354425696127217|13600000
+IPHONE 15 PRO MAX 256GB BEACUKAI BLUE TITANIUM BH.77|351149512058504|0
+IPHONE 15 PRO MAX 256GB IBOX BLUE TITANIUM BH.84|356616945162611|0
+IPHONE 15 PRO MAX 256GB IBOX WHITE TITANIUM BH.86 (0898)|357926955880898|15500000
+IPHONE 16 128GB NEW IBOX PINK PA/A (8463)|355628865228463|15700000
+IPHONE 16 PLUS 128GB IBOX WHITE BH.100 CC.0 23/10/27(5320)|351218529155320|14900000
+IPHONE 16 PLUS 128GB IBOX PINK BH.98|357684139160774|14400000
+IPHONE 16 PROMAX 256GB IBOX DESSERT TITANIUM BH.89 (7393)|358029692187393|17000000
+IPHONE 16 PRO MAX 256GB IBOX DESERT TITANIUM BH.90 (MIRZA)|351361542174439|17000000
+IPHONE 17 256GB NEW IBOX LAVENDER SA/A|354096178600177|18000000
+IPHONE 17 PRO 256GB NEW IBOX SILVER PA/A (5208)|355969466945208|22500000
+IPHONE 17 PROMAX 256GB IBOX COSMIC ORANGE BH.97 CC.78 25/12/2|354512323775631|22000000
+IPHONE 17 PRO MAX 512GB IBOX COSMIC ORANGE BH.96|356973397112861|25000000
+IPHONE 18 PRO MAX 256GB NEW IBOX GLACIER SA/A (2067)|355713696792067|30500000
+IPHONE 18 PRO MAX 256GB NEW IBOX BURGUNDY PA/A (7316)|358582912637316|31800000
+TECNO CAMON 50 PRO 5G 8/256GB NEBULA TITANIUM|352402210055242|4800000|TECNO
+POCO X5 5G 8/256GB BLACK (MIKO)|866051061389728|2500000|XIAOMI
+REDMI NOTE 13 5G 8/256GB GRAPHITE BLACK|865063075936163|0|XIAOMI`;
+const DEFAULT=RAW.split("\n").map(l=>{const a=l.split("|");return [a[0],a[3]||"APPLE",a[1],+a[2]||0]});
+const KEY="stok_cariiphone_v1";
+let data=DEFAULT, updated="Data awal (dari daftar harga)", sortK=null, sortAsc=true;
+
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.data&&s.data.length){data=s.data;updated=s.updated}}catch(e){}
+
+const $=id=>document.getElementById(id);
+const rp=n=>n?"Rp"+n.toLocaleString("id-ID"):"-";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function brands(){
+  const cur=$("brand").value;
+  const b=[...new Set(data.map(r=>r[1]).filter(Boolean))].sort();
+  $("brand").innerHTML='<option value="">Semua merek</option>'+b.map(x=>`<option>${esc(x)}</option>`).join("");
+  $("brand").value=b.includes(cur)?cur:"";
+}
+function render(){
+  const q=$("q").value.trim().toLowerCase(), br=$("brand").value, op=$("onlyPrice").checked;
+  let rows=data.filter(r=>(!br||r[1]===br)&&(!op||r[3])&&(!q||q.split(/\s+/).every(w=>(r[0]+" "+r[1]+" "+r[2]).toLowerCase().includes(w))));
+  if(sortK!==null)rows=[...rows].sort((a,b)=>{const x=a[sortK],y=b[sortK];const c=typeof x==="number"?x-y:String(x).localeCompare(String(y),"id",{numeric:true});return sortAsc?c:-c});
+  const words=q?q.split(/\s+/).filter(Boolean).map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")):[];
+  const hl=s=>{s=esc(s);return words.length?s.replace(new RegExp("("+words.join("|")+")","gi"),"<mark>$1</mark>"):s};
+  $("body").innerHTML=rows.length?rows.map(r=>`<tr><td class="n">${hl(r[0])}</td><td>${hl(r[1])}</td><td class="imei">${hl(r[2])}</td><td class="p">${r[3]?rp(r[3]):'<span class="empty">-</span>'}</td></tr>`).join(""):'<tr><td colspan="4" class="empty" style="text-align:center;padding:24px">Tidak ada barang yang cocok.</td></tr>';
+  $("count").textContent=`Menampilkan ${rows.length} dari ${data.length} barang`;
+  $("info").textContent="Terakhir diperbarui: "+updated;
+}
+function msg(t,ok){$("msg").className=ok?"ok":"err";$("msg").textContent=t}
+
+function parseNum(v){if(typeof v==="number")return Math.round(v);const d=String(v).replace(/[^\d]/g,"");return d?parseInt(d,10):0}
+
+$("file").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+      const hi=rows.findIndex(r=>r.some(c=>/nama\s*barang/i.test(String(c))));
+      if(hi<0)throw new Error("Baris judul kolom (NAMA BARANG, MEREK, IMEI, HARGA JUAL) tidak ditemukan.");
+      const h=rows[hi].map(c=>String(c).trim().toLowerCase());
+      const ci=re=>h.findIndex(c=>re.test(c));
+      const cn=ci(/nama/),cm=ci(/merek/),cimei=ci(/imei/),cp=ci(/harga/);
+      const out=[];
+      for(let i=hi+1;i<rows.length;i++){
+        const r=rows[i],name=String(r[cn]||"").trim();
+        if(!name)continue;
+        out.push([name,cm>=0?String(r[cm]).trim():"",cimei>=0?String(r[cimei]).trim():"",cp>=0?parseNum(r[cp]):0]);
+      }
+      if(!out.length)throw new Error("Tidak ada data barang di file.");
+      data=out;
+      updated=new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"});
+      try{localStorage.setItem(KEY,JSON.stringify({data,updated}))}catch(e){}
+      brands();render();
+      msg(`Stok berhasil diperbarui: ${out.length} barang dari file "${f.name}".`,true);
+    }catch(err){msg("Gagal membaca file: "+err.message,false)}
+    $("file").value="";
+  };
+  rd.readAsArrayBuffer(f);
+});
+
+function resetData(){
+  if(!confirm("Kembalikan ke data awal?"))return;
+  try{localStorage.removeItem(KEY)}catch(e){}
+  data=DEFAULT;updated="Data awal (dari daftar harga)";brands();render();msg("Data dikembalikan ke awal.",true);
+}
+document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{const k=+th.dataset.k;sortAsc=sortK===k?!sortAsc:true;sortK=k;render()}));
+["q","brand","onlyPrice"].forEach(id=>$(id).addEventListener("input",render));
+brands();render();
+</script>
+</body>
+</html>
